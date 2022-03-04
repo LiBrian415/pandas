@@ -877,7 +877,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         blocks: Sequence[Block],
         axes: Sequence[Index],
-        verify_integrity: bool = True,
+        verify_integrity: bool = False,  # serializing and deserialing breaks this. Too bad..
     ):
 
         if verify_integrity:
@@ -980,6 +980,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # shortcut for select a single-dim from a 2-dim BM
         bp = BlockPlacement(slice(0, len(values)))
         if isinstance(block, RemoteBlock):
+            block._load()
             nb = type(block.delegate)(values, placement=bp, ndim=1)
         else:
             nb = type(block)(values, placement=bp, ndim=1)

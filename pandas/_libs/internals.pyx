@@ -38,10 +38,13 @@ cdef class BlockPlacement:
         slice _as_slice
         ndarray _as_array  # Note: this still allows `None`; will be intp_t
         bint _has_slice, _has_array, _is_known_slice_like
+        public object orig_val
 
     def __cinit__(self, val):
         cdef:
             slice slc
+
+        self.orig_val = val
 
         self._as_slice = None
         self._as_array = None
@@ -664,14 +667,6 @@ cdef class Block(SharedBlock):
         # set values here the (implicit) call to SharedBlock.__cinit__ will
         #  set placement and ndim
         self.values = values
-
-
-cdef class RemoteBlock:
-    cdef:
-        public SharedBlock delegate
-
-    def __cinit__(self, SharedBlock delegate):
-        self.delegate = delegate
 
 
 @cython.freelist(64)
