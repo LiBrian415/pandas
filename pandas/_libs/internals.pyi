@@ -71,6 +71,9 @@ class NDArrayBackedBlock(SharedBlock):
 
 class Block(SharedBlock): ...
 
+class RemoteBlock:
+    def __init__(self, delegate: SharedBlock): ...
+
 class BlockManager:
     blocks: tuple[B, ...]
     axes: list[Index]

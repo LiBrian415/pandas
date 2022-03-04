@@ -666,6 +666,14 @@ cdef class Block(SharedBlock):
         self.values = values
 
 
+cdef class RemoteBlock:
+    cdef:
+        public SharedBlock delegate
+
+    def __cinit__(self, SharedBlock delegate):
+        self.delegate = delegate
+
+
 @cython.freelist(64)
 cdef class BlockManager:
     cdef:
@@ -703,7 +711,7 @@ cdef class BlockManager:
         cdef:
             intp_t blkno, i, j
             cnp.npy_intp length = self.shape[0]
-            SharedBlock blk
+            object blk
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 

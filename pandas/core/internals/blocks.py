@@ -2035,6 +2035,19 @@ class CategoricalBlock(ExtensionBlock):
         return self.values.dtype
 
 
+class RemoteBlock(libinternals.RemoteBlock):
+    # this Block type is used to abstract remote-storage of block from
+    # rest of Pandas
+    delegate: Block
+
+    def __getattr__(self, item):
+        # Note: Load block here if missing
+        return self.delegate.__getattribute__(item)
+
+    def __repr__(self):
+        return f"RemoteBlock: ({self.delegate.__repr__()})"
+
+
 # -----------------------------------------------------------------
 # Constructor Helpers
 
