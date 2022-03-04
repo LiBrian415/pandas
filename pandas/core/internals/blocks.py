@@ -2042,17 +2042,25 @@ class RemoteBlock:
     #
     # This will likely break code if the block structure changes but
     # I don't want to figure out how to fix it so too bad
-
     #
     # Also, only use this for Dataframes, no real optimizations here
     # for series
+    #
+    # transport - used for Scad
 
-    def __init__(self, block=None, bp=None, shape=None, ndim=None, remote_meta=None):
+    def __init__(self,
+                 block=None,
+                 bp=None,
+                 shape=None,
+                 ndim=None,
+                 remote_meta=None,
+                 transport=None):
         self.bp = bp
         self.shape = shape
         self.ndim = ndim
         self.delegate = block
         self.remote_meta = remote_meta
+        self.transport = transport
 
     def __getattr__(self, item):
         # Note: Load block here if missing
@@ -2075,6 +2083,10 @@ class RemoteBlock:
             if self.remote_meta['type'] == 'lfs':
                 with open(self.remote_meta['meta']['path'], 'rb') as f:
                     self.delegate = cloudpickle.loads(f.read())
+            elif self.remote_meta['type'] == 'scad' and self.transport is not None:
+                (address, size) = self.remote_meta['meta']
+                self.transport.read(size, address, 0)
+                self.delegate = cloudpickle.loads(self.transport.buf[:size])
             else:
                 raise AttributeError("Invalid Remote Metadata")
 
