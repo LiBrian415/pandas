@@ -2085,7 +2085,10 @@ class RemoteBlock:
                     self.delegate = cloudpickle.loads(f.read())
             elif self.remote_meta['type'] == 'scad' and self.transport is not None:
                 (address, size) = self.remote_meta['meta']
-                self.transport.read(size, address, 0)
+                limit = 1000 * 1000
+                for i in range(0, size, limit):
+                    ts = min(limit, size-i)
+                    self.transport.read(ts, address+i, i)
                 self.delegate = cloudpickle.loads(self.transport.buf[:size])
             else:
                 raise AttributeError("Invalid Remote Metadata")
