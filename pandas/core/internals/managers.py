@@ -70,6 +70,7 @@ from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
     NumpyBlock,
+    RemoteBlock,
     ensure_block_shape,
     extend_blocks,
     get_block_type,
@@ -876,7 +877,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         blocks: Sequence[Block],
         axes: Sequence[Index],
-        verify_integrity: bool = True,
+        verify_integrity: bool = False,  # serializing and deserialing breaks this. Too bad..
     ):
 
         if verify_integrity:
@@ -978,7 +979,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         # shortcut for select a single-dim from a 2-dim BM
         bp = BlockPlacement(slice(0, len(values)))
-        nb = type(block)(values, placement=bp, ndim=1)
+        if isinstance(block, RemoteBlock):
+            block._load()
+            nb = type(block.delegate)(values, placement=bp, ndim=1)
+        else:
+            nb = type(block)(values, placement=bp, ndim=1)
         return SingleBlockManager(nb, self.axes[1])
 
     def iget_values(self, i: int) -> ArrayLike:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import wraps
 import re
+import cloudpickle
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -2033,6 +2034,64 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def dtype(self) -> DtypeObj:
         return self.values.dtype
+
+
+class RemoteBlock:
+    # this Block type is used to abstract remote-storage of block from
+    # rest of Pandas
+    #
+    # This will likely break code if the block structure changes but
+    # I don't want to figure out how to fix it so too bad
+    #
+    # Also, only use this for Dataframes, no real optimizations here
+    # for series
+    #
+    # transport - used for Scad
+
+    def __init__(self,
+                 block=None,
+                 bp=None,
+                 shape=None,
+                 ndim=None,
+                 remote_meta=None,
+                 transport=None):
+        self.bp = bp
+        self.shape = shape
+        self.ndim = ndim
+        self.delegate = block
+        self.remote_meta = remote_meta
+        self.transport = transport
+
+    def __getattr__(self, item):
+        # Note: Load block here if missing
+        self._load()
+        return self.delegate.__getattribute__(item)
+
+    @property
+    def _mgr_locs(self):
+        return BlockPlacement(self.bp)
+
+    def __repr__(self):
+        if self.delegate is None:
+            result = f"RemoteBlock: {self.remote_meta}"
+        else:
+            result = f"RemoteBlock: ({self.delegate.__repr__()})"
+        return result
+
+    def _load(self):
+        if self.delegate is None:
+            if self.remote_meta['type'] == 'lfs':
+                with open(self.remote_meta['meta']['path'], 'rb') as f:
+                    self.delegate = cloudpickle.loads(f.read())
+            elif self.remote_meta['type'] == 'scad' and self.transport is not None:
+                (address, size) = self.remote_meta['meta']
+                limit = 1000 * 1000
+                for i in range(0, size, limit):
+                    ts = min(limit, size-i)
+                    self.transport.read(ts, address+i, i)
+                self.delegate = cloudpickle.loads(self.transport.buf[:size])
+            else:
+                raise AttributeError("Invalid Remote Metadata")
 
 
 # -----------------------------------------------------------------

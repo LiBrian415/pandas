@@ -38,10 +38,13 @@ cdef class BlockPlacement:
         slice _as_slice
         ndarray _as_array  # Note: this still allows `None`; will be intp_t
         bint _has_slice, _has_array, _is_known_slice_like
+        public object orig_val
 
     def __cinit__(self, val):
         cdef:
             slice slc
+
+        self.orig_val = val
 
         self._as_slice = None
         self._as_array = None
@@ -703,7 +706,7 @@ cdef class BlockManager:
         cdef:
             intp_t blkno, i, j
             cnp.npy_intp length = self.shape[0]
-            SharedBlock blk
+            object blk
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 
